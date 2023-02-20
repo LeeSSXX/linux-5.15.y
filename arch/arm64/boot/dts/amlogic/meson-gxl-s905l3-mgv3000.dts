@@ -1,0 +1,58 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2016 Endless Computers, Inc.
+ * Author: Carlo Caione <carlo@endlessm.com>
+ */
+
+ /dts-v1/;
+
+ #include "meson-gxl-s905w-p281.dts"
+ 
+ / {
+     compatible = "amlogic,mgv3000", "amlogic,s905l3", "amlogic,meson-gxl";
+     model = "Amlogic Meson GXL (S905L3) MGV3000 Tv Box";
+ };
+ 
+ // the gpu in the S905L3 has one pp core less
+ // (i.e. only two in total) than the one in the other S905X/W
+ &mali {
+     interrupts = <GIC_SPI 160 IRQ_TYPE_LEVEL_HIGH>,
+         <GIC_SPI 161 IRQ_TYPE_LEVEL_HIGH>,
+         <GIC_SPI 162 IRQ_TYPE_LEVEL_HIGH>,
+         <GIC_SPI 163 IRQ_TYPE_LEVEL_HIGH>,
+         <GIC_SPI 164 IRQ_TYPE_LEVEL_HIGH>,
+         <GIC_SPI 165 IRQ_TYPE_LEVEL_HIGH>,
+         <GIC_SPI 166 IRQ_TYPE_LEVEL_HIGH>,
+         <GIC_SPI 167 IRQ_TYPE_LEVEL_HIGH>;
+     interrupt-names = "gp", "gpmmu", "pp", "pmu",
+         "pp0", "ppmmu0", "pp1", "ppmmu1";
+ };
+ 
+ /* Wireless SDIO Module By rtl88x2cs */
+ &sd_emmc_a {
+     status = "okay";
+     pinctrl-0 = <&sdio_pins>;
+     pinctrl-1 = <&sdio_clk_gate_pins>;
+     pinctrl-names = "default", "clk-gate";
+     #address-cells = <1>;
+     #size-cells = <0>;
+ 
+     bus-width = <4>;
+     cap-sd-highspeed;
+     sd-uhs-sdr12;
+     sd-uhs-sdr25;
+     sd-uhs-sdr50;
+     sd-uhs-sdr104;
+     max-frequency = <25000000>;
+ 
+     non-removable;
+     disable-wp;
+ 
+     /* WiFi firmware requires power to be kept while in suspend */
+     keep-power-in-suspend;
+ 
+     mmc-pwrseq = <&sdio_pwrseq>;
+ 
+     vmmc-supply = <&vddao_3v3>;
+     vqmmc-supply = <&vddio_boot>;
+ };
