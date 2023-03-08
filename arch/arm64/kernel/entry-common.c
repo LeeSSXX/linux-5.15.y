@@ -235,8 +235,12 @@ static void noinstr exit_el1_irq_or_nmi(struct pt_regs *regs)
 		exit_to_kernel_mode(regs);
 }
 
-static void __sched arm64_preempt_schedule_irq(void)
+static void __sched arm64_preempt_schedule_irq(struct pt_regs *regs)
 {
+	/* Don't reschedule in case we are single stepping */
+	if (regs->pstate & DBG_SPSR_SS)
+		return;
+
 	lockdep_assert_irqs_disabled();
 
 	/*
@@ -436,6 +440,14 @@ asmlinkage void noinstr el1h_64_sync_handler(struct pt_regs *regs)
 static void noinstr el1_interrupt(struct pt_regs *regs,
 				  void (*handler)(struct pt_regs *))
 {
+	unsigned long mdscr;
+
+	/* Disable single stepping within interrupt handler */
+	if (regs->pstate & DBG_SPSR_SS) {
+		mdscr = read_sysreg(mdscr_el1);
+		write_sysreg(mdscr & ~DBG_MDSCR_SS, mdscr_el1);
+	}
+
 	write_sysreg(DAIF_PROCCTX_NOIRQ, daif);
 
 	enter_el1_irq_or_nmi(regs);
@@ -448,9 +460,14 @@ static void noinstr el1_interrupt(struct pt_regs *regs,
 	 */
 	if (IS_ENABLED(CONFIG_PREEMPTION) &&
 	    READ_ONCE(current_thread_info()->preempt_count) == 0)
-		arm64_preempt_schedule_irq();
+		arm64_preempt_schedule_irq(regs);
 
 	exit_el1_irq_or_nmi(regs);
+
+	if (regs->pstate & DBG_SPSR_SS) {
+		write_sysreg(DAIF_PROCCTX_NOIRQ | PSR_D_BIT, daif);
+		write_sysreg(mdscr, mdscr_el1);
+	}
 }
 
 asmlinkage void noinstr el1h_64_irq_handler(struct pt_regs *regs)

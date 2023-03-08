@@ -436,6 +436,12 @@ int kernel_active_single_step(void)
 	WARN_ON(!irqs_disabled());
 	return mdscr_read() & DBG_MDSCR_SS;
 }
+
+void kernel_rewind_single_step(struct pt_regs *regs)
+{
+	set_regs_spsr_ss(regs);
+}
+
 NOKPROBE_SYMBOL(kernel_active_single_step);
 
 /* ptrace API */
